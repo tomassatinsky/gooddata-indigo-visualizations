@@ -9,10 +9,11 @@ export function screenshotWrap(component) {
     );
 }
 
-export function wrap(component, height = 600, width = 600) {
+export function wrap(component, height = 600, width = 600, minHeight, minWidth, key) {
+    const keyProp = key ? { key } : {};
     return (
-        <IntlWrapper>
-            <div style={{ height, width, border: '1px solid pink', margin: 10 }}>
+        <IntlWrapper {...keyProp}>
+            <div style={{ height, width, minHeight, minWidth, border: '1px solid pink', margin: 10 }}>
                 {component}
             </div>
         </IntlWrapper>
