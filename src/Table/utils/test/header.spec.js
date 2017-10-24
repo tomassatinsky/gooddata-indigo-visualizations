@@ -111,16 +111,19 @@ describe('Table utils - Header', () => {
     describe('isHeaderAtEdgePosition', () => {
         const stickyHeaderOffset = 0;
         const hasHiddenRows = true;
-        const aggregations = [];
+        const totals = [];
+        const totalsEditAllowed = false;
 
         it('should return true if header is at its edge position', () => {
             const tableBottom = 50;
-            expect(isHeaderAtEdgePosition(stickyHeaderOffset, hasHiddenRows, aggregations, tableBottom)).toEqual(true);
+            expect(isHeaderAtEdgePosition(stickyHeaderOffset, hasHiddenRows, totals, tableBottom, totalsEditAllowed))
+                .toEqual(true);
         });
 
         it('should return false if header is not at its edge position', () => {
             const tableBottom = 500;
-            expect(isHeaderAtEdgePosition(stickyHeaderOffset, hasHiddenRows, aggregations, tableBottom)).toEqual(false);
+            expect(isHeaderAtEdgePosition(stickyHeaderOffset, hasHiddenRows, totals, tableBottom, totalsEditAllowed))
+                .toEqual(false);
         });
     });
 
@@ -128,11 +131,14 @@ describe('Table utils - Header', () => {
         it('should return proper header positions', () => {
             const stickyHeaderOffset = 0;
             let hasHiddenRows = true;
-            let aggregations = [];
-            let tableHeight = 500;
-            let tableTop = 50;
+            let totals = [];
+            const totalsEditAllowed = false;
+            let tableDimensions = {
+                height: 500,
+                top: 50
+            };
 
-            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, aggregations, tableHeight, tableTop))
+            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, totals, totalsEditAllowed, tableDimensions))
                 .toEqual({
                     absoluteTop: -50,
                     defaultTop: 0,
@@ -141,11 +147,13 @@ describe('Table utils - Header', () => {
                 });
 
             hasHiddenRows = true;
-            aggregations = [1, 2, 3];
-            tableHeight = 500;
-            tableTop = 50;
+            totals = [1, 2, 3];
+            tableDimensions = {
+                height: 500,
+                top: 50
+            };
 
-            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, aggregations, tableHeight, tableTop))
+            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, totals, totalsEditAllowed, tableDimensions))
                 .toEqual({
                     absoluteTop: -50,
                     defaultTop: 0,
@@ -154,11 +162,9 @@ describe('Table utils - Header', () => {
                 });
 
             hasHiddenRows = false;
-            aggregations = [1, 2, 3];
-            tableHeight = 500;
-            tableTop = 50;
+            totals = [1, 2, 3];
 
-            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, aggregations, tableHeight, tableTop))
+            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, totals, totalsEditAllowed, tableDimensions))
                 .toEqual({
                     absoluteTop: -50,
                     defaultTop: 0,
@@ -166,12 +172,22 @@ describe('Table utils - Header', () => {
                     fixedTop: 0
                 });
 
-            hasHiddenRows = true;
-            aggregations = [];
-            tableHeight = 200;
-            tableTop = 100;
+            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, totals, true, tableDimensions))
+                .toEqual({
+                    absoluteTop: -50,
+                    defaultTop: 0,
+                    edgeTop: 304,
+                    fixedTop: 0
+                });
 
-            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, aggregations, tableHeight, tableTop))
+            hasHiddenRows = true;
+            totals = [];
+            tableDimensions = {
+                height: 200,
+                top: 100
+            };
+
+            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, totals, totalsEditAllowed, tableDimensions))
                 .toEqual({
                     absoluteTop: -100,
                     defaultTop: 0,
@@ -180,11 +196,9 @@ describe('Table utils - Header', () => {
                 });
 
             hasHiddenRows = false;
-            aggregations = [];
-            tableHeight = 200;
-            tableTop = 100;
+            totals = [];
 
-            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, aggregations, tableHeight, tableTop))
+            expect(getHeaderPositions(stickyHeaderOffset, hasHiddenRows, totals, totalsEditAllowed, tableDimensions))
                 .toEqual({
                     absoluteTop: -100,
                     defaultTop: 0,

@@ -43,8 +43,8 @@ export function isHeaderAtDefaultPosition(stickyHeaderOffset, tableTop) {
     return tableTop >= stickyHeaderOffset;
 }
 
-export function isHeaderAtEdgePosition(stickyHeaderOffset, hasHiddenRows, aggregations, tableBottom) {
-    const footerHeight = getFooterHeight(aggregations);
+export function isHeaderAtEdgePosition(stickyHeaderOffset, hasHiddenRows, totals, tableBottom, totalsEditAllowed) {
+    const footerHeight = getFooterHeight(totals, totalsEditAllowed);
     const hiddenRowsOffset = getHiddenRowsOffset(hasHiddenRows);
     const headerOffset = getHeaderOffset(hasHiddenRows);
 
@@ -52,8 +52,10 @@ export function isHeaderAtEdgePosition(stickyHeaderOffset, hasHiddenRows, aggreg
         tableBottom < (stickyHeaderOffset + headerOffset + footerHeight + hiddenRowsOffset);
 }
 
-export function getHeaderPositions(stickyHeaderOffset, hasHiddenRows, aggregations, tableHeight, tableTop) {
-    const footerHeight = getFooterHeight(aggregations);
+export function getHeaderPositions(stickyHeaderOffset, hasHiddenRows, totals, totalsEditAllowed, tableDimensions) {
+    const { height: tableHeight, top: tableTop } = tableDimensions;
+
+    const footerHeight = getFooterHeight(totals, totalsEditAllowed);
     const hiddenRowsOffset = getHiddenRowsOffset(hasHiddenRows);
     const headerOffset = getHeaderOffset(hasHiddenRows);
 

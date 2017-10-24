@@ -92,10 +92,11 @@ function generateExecutionResult(columns, rows) {
     };
 }
 
-function generateAggregations(columns, aggregationsTypes) {
-    return aggregationsTypes.map((type, typeIndex) => {
+function generateTotals(columns, totalsTypes) {
+    return totalsTypes.map((type, typeIndex) => {
         return {
-            name: type,
+            type,
+            alias: `My ${type}`,
             values: range(columns).map((column, columnIndex) => typeIndex + columnIndex)
         };
     });
@@ -104,59 +105,67 @@ function generateAggregations(columns, aggregationsTypes) {
 storiesOf('Table')
     .add('Fixed dimensions', () => (
         screenshotWrap(
-            <div>
-                <TableTransformation
-                    executionRequest={EXECUTION_REQUEST_2A_1M}
-                    executionResponse={EXECUTION_RESPONSE_2A_1M}
-                    executionResult={EXECUTION_RESULT_2A_1M}
-                    height={400}
-                    onSortChange={action('Sort changed')}
-                    width={600}
-                />
-            </div>
+            <IntlWrapper>
+                <div>
+                    <TableTransformation
+                        executionRequest={EXECUTION_REQUEST_2A_1M}
+                        executionResponse={EXECUTION_RESPONSE_2A_1M}
+                        executionResult={EXECUTION_RESULT_2A_1M}
+                        height={400}
+                        onSortChange={action('Sort changed')}
+                        width={600}
+                    />
+                </div>
+            </IntlWrapper>
         )
     ))
     .add('Fill parent', () => (
         screenshotWrap(
-            <div style={{ width: '100%', height: 500 }}>
-                <TableTransformation
-                    executionRequest={EXECUTION_REQUEST_2A_1M}
-                    executionResponse={EXECUTION_RESPONSE_2A_1M}
-                    executionResult={EXECUTION_RESULT_2A_1M}
-                    onSortChange={action('Sort changed')}
-                />
-            </div>
+            <IntlWrapper>
+                <div style={{ width: '100%', height: 500 }}>
+                    <TableTransformation
+                        executionRequest={EXECUTION_REQUEST_2A_1M}
+                        executionResponse={EXECUTION_RESPONSE_2A_1M}
+                        executionResult={EXECUTION_RESULT_2A_1M}
+                        onSortChange={action('Sort changed')}
+                    />
+                </div>
+            </IntlWrapper>
         )
     ))
     .add('Sticky header', () => (
         screenshotWrap(
-            <div style={{ width: '100%', height: 600 }}>
-                <TableTransformation
-                    config={{
-                        stickyHeader: 0
-                    }}
-                    executionRequest={EXECUTION_REQUEST_2A_1M}
-                    executionResponse={EXECUTION_RESPONSE_2A_1M}
-                    executionResult={EXECUTION_RESULT_2A_1M}
-                    height={400}
-                    onSortChange={action('Sort changed')}
-                />
-                <div style={{ height: 800 }} />
-            </div>
+            <IntlWrapper>
+                <div style={{ width: '100%', height: 600 }}>
+                    <TableTransformation
+                        config={{
+                            stickyHeader: 0
+                        }}
+                        executionRequest={EXECUTION_REQUEST_2A_1M}
+                        executionResponse={EXECUTION_RESPONSE_2A_1M}
+                        executionResult={EXECUTION_RESULT_2A_1M}
+                        height={400}
+                        onSortChange={action('Sort changed')}
+                    />
+                    <div style={{ height: 800 }} />
+                </div>
+            </IntlWrapper>
         )
     ))
     .add('Vertical scroll', () => (
         screenshotWrap(
-            <div>
-                <TableTransformation
-                    executionRequest={generateExecutionRequest()}
-                    executionResponse={generateExecutionResponse(20, 20)}
-                    executionResult={generateExecutionResult(20, 20)}
-                    height={400}
-                    onSortChange={action('Sort changed')}
-                    width={600}
-                />
-            </div>
+            <IntlWrapper>
+                <div>
+                    <TableTransformation
+                        executionRequest={generateExecutionRequest()}
+                        executionResponse={generateExecutionResponse(20, 20)}
+                        executionResult={generateExecutionResult(20, 20)}
+                        height={400}
+                        onSortChange={action('Sort changed')}
+                        width={600}
+                    />
+                </div>
+            </IntlWrapper>
         )
     ))
     .add('Show more/Show less', () => (
@@ -177,7 +186,7 @@ storiesOf('Table')
             </IntlWrapper>
         )
     ))
-    .add('Aggregations', () => (
+    .add('Totals view mode', () => (
         screenshotWrap(
             <IntlWrapper>
                 <TableTransformation
@@ -192,7 +201,23 @@ storiesOf('Table')
                     height={400}
                     onSortChange={action('Sort changed')}
                     tableRenderer={props => (<ResponsiveTable {...props} rowsPerPage={10} />)}
-                    aggregations={generateAggregations(3, ['Sum', 'Avg', 'Rollup'])}
+                    totals={generateTotals(3, ['sum', 'avg', 'nat'])}
+                />
+            </IntlWrapper>
+        )
+    ))
+    .add('Totals edit mode', () => (
+        screenshotWrap(
+            <IntlWrapper>
+                <TableTransformation
+                    executionRequest={EXECUTION_REQUEST_2A_1M}
+                    executionResponse={EXECUTION_RESPONSE_2A_1M}
+                    executionResult={EXECUTION_RESULT_2A_1M}
+                    height={400}
+                    onSortChange={action('Sort changed')}
+                    totalsEditAllowed
+                    totals={generateTotals(3, ['sum', 'avg', 'nat'])}
+                    onTotalsEdit={action('Totals updated')}
                 />
             </IntlWrapper>
         )

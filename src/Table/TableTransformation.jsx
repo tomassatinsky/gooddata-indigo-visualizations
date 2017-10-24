@@ -19,7 +19,9 @@ function renderDefaultTable(props) {
 export default class TableTransformation extends Component {
     static propTypes = {
         afterRender: PropTypes.func,
-        aggregations: PropTypes.array,
+        totals: PropTypes.array,
+        totalsEditAllowed: PropTypes.bool,
+        onTotalsEdit: PropTypes.func,
         config: PropTypes.object,
         drillableItems: PropTypes.arrayOf(PropTypes.shape(DrillableItem)),
         executionRequest: ExecutionRequestPropTypes.isRequired,
@@ -34,7 +36,9 @@ export default class TableTransformation extends Component {
 
     static defaultProps = {
         afterRender: noop,
-        aggregations: [],
+        totals: [],
+        totalsEditAllowed: false,
+        onTotalsEdit: noop,
         config: {},
         drillableItems: [],
         height: undefined,
@@ -46,7 +50,6 @@ export default class TableTransformation extends Component {
 
     render() {
         const {
-            aggregations,
             config,
             drillableItems,
             executionRequest,
@@ -55,7 +58,10 @@ export default class TableTransformation extends Component {
             height,
             onFiredDrillEvent,
             onSortChange,
-            width
+            width,
+            totals,
+            totalsEditAllowed,
+            onTotalsEdit
         } = this.props;
 
         const headers = getHeaders(executionResponse);
@@ -69,7 +75,9 @@ export default class TableTransformation extends Component {
         const tableProps = {
             ...pick(config, ['rowsPerPage', 'onMore', 'onLess', 'sortInTooltip', 'stickyHeaderOffset']),
             afterRender: this.props.afterRender,
-            aggregations,
+            totals,
+            totalsEditAllowed,
+            onTotalsEdit,
             drillableItems,
             executionRequest,
             headers,

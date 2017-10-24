@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
+import { injectIntl } from 'react-intl';
 import classNames from 'classnames';
 import { Cell, Column, Table } from 'fixed-data-table-2';
 import { assign, debounce, isEqual, noop, pick, uniqueId } from 'lodash';
 
 import Bubble from '@gooddata/goodstrap/lib/Bubble/Bubble';
 import BubbleHoverTrigger from '@gooddata/goodstrap/lib/Bubble/BubbleHoverTrigger';
-import { numberFormat } from '@gooddata/numberjs';
 
 import TableSortBubbleContent from './TableSortBubbleContent';
 import DrillableItem from '../proptypes/DrillableItem';
@@ -16,8 +16,10 @@ import { subscribeEvents } from '../utils/common';
 import { getCellClassNames, getColumnAlign, getStyledLabel } from './utils/cell';
 import { getBackwardCompatibleHeaderForDrilling, getBackwardCompatibleRowForDrilling } from './utils/dataTransformation';
 import { cellClick, isDrillable } from '../utils/drilldownEventing';
+import RemoveRows from './Totals/RemoveRows';
+import AddTotal from './Totals/AddTotal';
 import { getHeaderSortClassName, getNextSortDir } from './utils/sort';
-import { getFooterPositions, isFooterAtDefaultPosition, isFooterAtEdgePosition } from './utils/footer';
+import { getFooterHeight, getFooterPositions, isFooterAtDefaultPosition, isFooterAtEdgePosition } from './utils/footer';
 import { updatePosition } from './utils/row';
 import {
     calculateArrowPositions,
@@ -25,6 +27,18 @@ import {
     getTooltipAlignPoints,
     getTooltipSortAlignPoints, isHeaderAtDefaultPosition, isHeaderAtEdgePosition
 } from './utils/header';
+import {
+    getTotalsDatasource,
+    getOrderedTotalsWithMockedData,
+    toggleCellClass,
+    resetRowClass,
+    isAddingMoreTotalsEnabled,
+    removeTotalsRow,
+    addTotalsRow,
+    updateTotalsRemovePosition,
+    shouldShowAddTotalButton,
+    addTotalMeasureIndexes
+} from './Totals/utils';
 
 const FULLSCREEN_TOOLTIP_VIEWPORT_THRESHOLD = 480;
 const MIN_COLUMN_WIDTH = 100;
@@ -32,6 +46,9 @@ const MIN_COLUMN_WIDTH = 100;
 export const DEFAULT_HEADER_HEIGHT = 26;
 export const DEFAULT_ROW_HEIGHT = 30;
 export const DEFAULT_FOOTER_ROW_HEIGHT = 30;
+
+export const TOTALS_ADD_ROW_HEIGHT = 50;
+export const TOTALS_TYPES_DROPDOWN_WIDTH = 150;
 
 const DEBOUNCE_SCROLL_STOP = 500;
 const TOOLTIP_DISPLAY_DELAY = 1000;
@@ -55,10 +72,23 @@ const scrollEvents = [
     }
 ];
 
-export default class TableVisualization extends Component {
+export const totalShape = PropTypes.shape({
+    alias: PropTypes.string,
+    type: PropTypes.string,
+    outputMeasureIndexes: PropTypes.arrayOf(PropTypes.number)
+});
+
+export const totalsPropType = {
+    totals: PropTypes.arrayOf(totalShape)
+};
+
+export const totalsDefaultProp = {
+    totals: []
+};
+
+export class TableVisualization extends Component {
     static propTypes = {
         afterRender: PropTypes.func,
-        aggregations: PropTypes.array,
         containerHeight: PropTypes.number,
         containerMaxHeight: PropTypes.number,
         containerWidth: PropTypes.number.isRequired,
@@ -72,12 +102,14 @@ export default class TableVisualization extends Component {
         sortBy: PropTypes.number,
         sortDir: PropTypes.string,
         sortInTooltip: PropTypes.bool,
-        stickyHeaderOffset: PropTypes.number
+        stickyHeaderOffset: PropTypes.number,
+        totalsEditAllowed: PropTypes.bool,
+        onTotalsEdit: PropTypes.func,
+        ...totalsPropType
     };
 
     static defaultProps = {
         afterRender: noop,
-        aggregations: [],
         containerHeight: null,
         containerMaxHeight: null,
         drillableItems: [],
@@ -89,7 +121,10 @@ export default class TableVisualization extends Component {
         sortBy: null,
         sortDir: null,
         sortInTooltip: false,
-        stickyHeaderOffset: -1
+        stickyHeaderOffset: -1,
+        totalsEditAllowed: false,
+        onTotalsEdit: noop,
+        ...totalsDefaultProp
     };
 
     static fullscreenTooltipEnabled() {
@@ -111,18 +146,28 @@ export default class TableVisualization extends Component {
             height: 0
         };
 
+        this.setTableWrapRef = this.setTableWrapRef.bind(this);
+        this.setTableRef = this.setTableRef.bind(this);
         this.closeBubble = this.closeBubble.bind(this);
         this.renderDefaultHeader = this.renderDefaultHeader.bind(this);
         this.renderTooltipHeader = this.renderTooltipHeader.bind(this);
         this.scroll = this.scroll.bind(this);
         this.scrolled = this.scrolled.bind(this);
-        this.setTableRef = this.setTableRef.bind(this);
-        this.setTableWrapRef = this.setTableWrapRef.bind(this);
+        this.addTotalsRow = this.addTotalsRow.bind(this);
+        this.setTotalsRemoveRef = this.setTotalsRemoveRef.bind(this);
+        this.removeTotalsRow = this.removeTotalsRow.bind(this);
+        this.toggleColumnHighlight = this.toggleColumnHighlight.bind(this);
+        this.toggleBodyColumnHighlight = this.toggleBodyColumnHighlight.bind(this);
+        this.toggleFooterColumnHighlight = this.toggleFooterColumnHighlight.bind(this);
+        this.resetTotalsRowHighlight = this.resetTotalsRowHighlight.bind(this);
 
         this.scrollingStopped = debounce(() => this.scroll(true), DEBOUNCE_SCROLL_STOP);
+
+        this.addTotalDropdownOpened = false;
     }
 
     componentDidMount() {
+        this.component = ReactDOM.findDOMNode(this);// eslint-disable-line react/no-find-dom-node
         this.table = ReactDOM.findDOMNode(this.tableRef); // eslint-disable-line react/no-find-dom-node
         this.tableInnerContainer = this.table.querySelector('.fixedDataTableLayout_rowsContainer');
         const tableRows = this.table.querySelectorAll('.fixedDataTableRowLayout_rowWrapper');
@@ -158,7 +203,10 @@ export default class TableVisualization extends Component {
     }
 
     componentDidUpdate(prevProps) {
-        if (!isEqual(prevProps.aggregations, this.props.aggregations)) {
+        const totalsWithData = getOrderedTotalsWithMockedData(this.props.totals);
+        const totalsWithDataPrev = getOrderedTotalsWithMockedData(prevProps.totals);
+
+        if (!isEqual(totalsWithDataPrev, totalsWithData)) {
             const tableRows = this.table.querySelectorAll('.fixedDataTableRowLayout_rowWrapper');
 
             if (this.footer) {
@@ -189,6 +237,10 @@ export default class TableVisualization extends Component {
 
     setTableWrapRef(ref) {
         this.tableWrapRef = ref;
+    }
+
+    setTotalsRemoveRef(ref) {
+        this.totalsRemoveRef = ref;
     }
 
     setListeners() {
@@ -252,7 +304,8 @@ export default class TableVisualization extends Component {
             'indigo-table-component',
             {
                 'has-hidden-rows': hasHiddenRows,
-                'has-footer': this.hasFooter()
+                'has-footer': this.hasFooter(),
+                'has-footer-editable': this.isTotalsEditAllowed()
             });
     }
 
@@ -275,11 +328,63 @@ export default class TableVisualization extends Component {
         }
     }
 
-    hasFooter() {
-        const { aggregations, headers } = this.props;
-        const onlyMeasures = headers.every(header => header.type === 'measure');
+    addTotalsRow(totalItemType) {
+        const updatedTotals = addTotalsRow(this.props.intl, this.props.totals, totalItemType);
 
-        return aggregations.length > 0 && !onlyMeasures;
+        if (!isEqual(updatedTotals, this.props.totals)) {
+            const totalsWithMeasureIndexes = addTotalMeasureIndexes(updatedTotals);
+            this.props.onTotalsEdit(totalsWithMeasureIndexes);
+        }
+    }
+
+    removeTotalsRow(totalItemType) {
+        const totals = removeTotalsRow(this.props.totals, totalItemType);
+        const totalsWithMeasureIndexes = addTotalMeasureIndexes(totals);
+        this.props.onTotalsEdit(totalsWithMeasureIndexes);
+    }
+
+    isTotalsEditAllowed() {
+        return this.props.totalsEditAllowed;
+    }
+
+    toggleBodyColumnHighlight(isHighlighted, columnIndex) {
+        if (this.addTotalDropdownOpened) {
+            return;
+        }
+        toggleCellClass(this.table, isHighlighted, columnIndex, 'indigo-table-cell-highlight');
+    }
+
+    toggleFooterColumnHighlight(isHighlighted, columnIndex) {
+        if (this.addTotalDropdownOpened) {
+            return;
+        }
+        toggleCellClass(this.footer, isHighlighted, columnIndex, 'indigo-table-footer-cell-highlight');
+    }
+
+    toggleColumnHighlight(isHighlighted, columnIndex) {
+        this.toggleBodyColumnHighlight(isHighlighted, columnIndex);
+        this.toggleFooterColumnHighlight(isHighlighted, columnIndex);
+    }
+
+    resetTotalsRowHighlight(rowIndex) {
+        if (!this.isTotalsEditAllowed()) {
+            return;
+        }
+        resetRowClass(this.component, 'indigo-totals-remove-row-highlight', '.indigo-totals-remove > .indigo-totals-remove-row', rowIndex);
+    }
+
+    hasFooter() {
+        if (this.isTotalsEditAllowed()) {
+            return true;
+        }
+
+        const { headers, totals, rows } = this.props;
+
+        const onlyMeasures = headers.every(header => header.type === 'measure');
+        const totalRowsCount = totals.length;
+        const rowsCount = rows.length;
+
+        return rowsCount > 1 && totalRowsCount > 0 && !onlyMeasures;
     }
 
     checkTableDimensions() {
@@ -294,8 +399,9 @@ export default class TableVisualization extends Component {
     }
 
     scrollHeader(isScrollingStopped = false) {
-        const { stickyHeaderOffset, sortInTooltip, aggregations, hasHiddenRows } = this.props;
+        const { stickyHeaderOffset, sortInTooltip, totals, hasHiddenRows } = this.props;
         const tableBoundingRect = this.tableInnerContainer.getBoundingClientRect();
+        const totalsEditAllowed = this.isTotalsEditAllowed();
 
         const isOutOfViewport = tableBoundingRect.bottom < 0;
         if (isOutOfViewport) {
@@ -314,16 +420,20 @@ export default class TableVisualization extends Component {
         const isEdgePosition = isHeaderAtEdgePosition(
             stickyHeaderOffset,
             hasHiddenRows,
-            aggregations,
-            tableBoundingRect.bottom
+            totals,
+            tableBoundingRect.bottom,
+            totalsEditAllowed
         );
 
         const positions = getHeaderPositions(
             stickyHeaderOffset,
             hasHiddenRows,
-            aggregations,
-            tableBoundingRect.height,
-            tableBoundingRect.top
+            totals,
+            totalsEditAllowed,
+            {
+                height: tableBoundingRect.height,
+                top: tableBoundingRect.top
+            }
         );
 
         updatePosition(
@@ -336,8 +446,9 @@ export default class TableVisualization extends Component {
     }
 
     scrollFooter(isScrollingStopped = false) {
-        const { aggregations, hasHiddenRows } = this.props;
+        const { hasHiddenRows, totals } = this.props;
         const tableBoundingRect = this.tableInnerContainer.getBoundingClientRect();
+        const totalsEditAllowed = this.isTotalsEditAllowed();
 
         const isOutOfViewport = tableBoundingRect.top > window.innerHeight;
         if (isOutOfViewport || !this.hasFooter()) {
@@ -352,18 +463,24 @@ export default class TableVisualization extends Component {
 
         const isEdgePosition = isFooterAtEdgePosition(
             hasHiddenRows,
-            aggregations,
-            tableBoundingRect.height,
-            tableBoundingRect.bottom,
-            window.innerHeight
+            totals,
+            window.innerHeight,
+            totalsEditAllowed,
+            {
+                height: tableBoundingRect.height,
+                bottom: tableBoundingRect.bottom
+            }
         );
 
         const positions = getFooterPositions(
             hasHiddenRows,
-            aggregations,
-            tableBoundingRect.height,
-            tableBoundingRect.bottom,
-            window.innerHeight
+            totals,
+            window.innerHeight,
+            totalsEditAllowed,
+            {
+                height: tableBoundingRect.height,
+                bottom: tableBoundingRect.bottom
+            }
         );
 
         updatePosition(
@@ -373,6 +490,11 @@ export default class TableVisualization extends Component {
             positions,
             isScrollingStopped
         );
+
+        if (this.totalsRemoveRef) {
+            const wrapperRef = this.totalsRemoveRef.getWrapperRef();
+            updateTotalsRemovePosition(tableBoundingRect, totals, this.isTotalsEditAllowed(), wrapperRef);
+        }
     }
 
     scroll(isScrollingStopped = false) {
@@ -522,6 +644,7 @@ export default class TableVisualization extends Component {
             const cellContent = row[columnKey];
             const classes = getCellClassNames(rowIndex, columnKey, drillable);
             const drillConfig = { executionRequest, onFiredDrillEvent };
+            const hoverable = header.type === 'measure' && this.isTotalsEditAllowed();
             const { style, label } = getStyledLabel(header, cellContent);
 
             const cellPropsDrill = drillable ? assign({}, cellProps, {
@@ -539,33 +662,105 @@ export default class TableVisualization extends Component {
                 }
             }) : cellProps;
 
+            const cellPropsHover = hoverable ? assign({}, cellPropsDrill, {
+                onMouseEnter: () => this.toggleFooterColumnHighlight(true, index),
+                onMouseLeave: () => this.toggleFooterColumnHighlight(false, index)
+            }) : cellPropsDrill;
+
             return (
-                <Cell {...cellPropsDrill}>
+                <Cell {...cellPropsHover} className={classNames(`col-${index}`)}>
                     <span className={classes} style={style} title={label}>{label}</span>
                 </Cell>
             );
         };
     }
 
-    renderFooter(header, index) {
-        const { aggregations } = this.props;
+    renderAddTotalButton(header, index, headersCount) {
+        const { totals, intl } = this.props;
 
-        if (!this.hasFooter()) return null;
+        if (!shouldShowAddTotalButton(header, index === 0, true)) {
+            return null;
+        }
 
-        const style = { height: DEFAULT_FOOTER_ROW_HEIGHT };
+        const dataSource = getTotalsDatasource(totals, intl);
+
+        return (
+            <AddTotal
+                dataSource={dataSource}
+                header={header}
+                index={index}
+                headersCount={headersCount}
+                onDropdownOpenStateChanged={(opened) => {
+                    this.addTotalDropdownOpened = opened;
+                    this.toggleBodyColumnHighlight(opened, index);
+                    this.toggleFooterColumnHighlight(opened, index);
+                }}
+                onWrapperHover={this.toggleFooterColumnHighlight}
+                onButtonHover={(hovered) => {
+                    this.toggleBodyColumnHighlight(hovered, index);
+                    this.toggleFooterColumnHighlight(hovered, index);
+                }}
+                onAddTotalsRow={this.addTotalsRow}
+                addingMoreTotalsEnabled={isAddingMoreTotalsEnabled(totals)}
+            />
+        );
+    }
+
+    renderFooterEditCell(header, index, headersCount) {
+        if (!this.isTotalsEditAllowed()) {
+            return null;
+        }
+
+        const style = { height: TOTALS_ADD_ROW_HEIGHT };
+
+        const className = classNames('indigo-table-footer-cell', `col-${index}`, 'indigo-totals-add-cell');
+
+        return (
+            <div className={className} style={style}>
+                {this.renderAddTotalButton(header, index, headersCount)}
+            </div>
+        );
+    }
+
+    renderFooter(header, index, headersCount) {
+        if (!this.hasFooter()) {
+            return null;
+        }
+
+        const { totals } = this.props;
+
+        const totalsWithData = getOrderedTotalsWithMockedData(totals);
+
         const isFirstColumn = (index === 0);
+
+        const cellContent = totalsWithData.map((total, rowIndex) => {
+            const value = total.values[index] === null ? '' : total.values[index];
+            const className = classNames('indigo-table-footer-cell', `col-${index}`);
+            const { style, label } = getStyledLabel(header, value);
+            const styleWithHeight = Object.assign({}, style, { height: DEFAULT_FOOTER_ROW_HEIGHT });
+            const totalName = total.alias ? total.alias : total.type;
+            const events = this.isTotalsEditAllowed() ? {
+                onMouseEnter: () => {
+                    this.resetTotalsRowHighlight(rowIndex);
+                    this.toggleFooterColumnHighlight(true, index);
+                },
+                onMouseLeave: () => {
+                    this.resetTotalsRowHighlight();
+                    this.toggleFooterColumnHighlight(false, index);
+                }
+            } : {};
+
+            return (
+                <div {...events} key={uniqueId('footer-cell-')} className={className} style={styleWithHeight}>
+                    <span>{isFirstColumn ? totalName : label}</span>
+                </div>
+            );
+        });
 
         return (
             <Cell>
-                {aggregations.map((aggregation) => {
-                    const value = aggregation.values[index] === null ? '' : aggregation.values[index];
-
-                    return (
-                        <div key={uniqueId('footer-cell-')} className={'indigo-table-footer-cell'} style={style}>
-                            <span>{isFirstColumn ? aggregation.name : numberFormat(value, header.format)}</span>
-                        </div>
-                    );
-                })}
+                {cellContent}
+                {this.renderFooterEditCell(header, index, headersCount)}
             </Cell>
         );
     }
@@ -580,7 +775,7 @@ export default class TableVisualization extends Component {
                 align={getColumnAlign(header)}
                 columnKey={index}
                 header={renderHeader(header, index, columnWidth)}
-                footer={this.renderFooter(header, index)}
+                footer={this.renderFooter(header, index, headers.length)}
                 cell={this.renderCell(headers, index)}
                 allowCellsRecycling
             />
@@ -596,9 +791,25 @@ export default class TableVisualization extends Component {
         );
     }
 
+    renderTotalsRemove() {
+        if (!this.isTotalsEditAllowed()) {
+            return false;
+        }
+
+        const totals = getOrderedTotalsWithMockedData(this.props.totals);
+
+        return (
+            <RemoveRows
+                totals={totals}
+                onRemove={this.removeTotalsRow}
+                ref={this.setTotalsRemoveRef}
+            />
+        );
+    }
+
     render() {
         const {
-            aggregations,
+            totals,
             containerHeight,
             containerMaxHeight,
             containerWidth,
@@ -607,30 +818,35 @@ export default class TableVisualization extends Component {
         } = this.props;
 
         const height = containerMaxHeight ? undefined : containerHeight;
-        const footerHeight = DEFAULT_FOOTER_ROW_HEIGHT * aggregations.length;
+        const footerHeight = getFooterHeight(totals, this.isTotalsEditAllowed());
         const columnWidth = Math.max(containerWidth / headers.length, MIN_COLUMN_WIDTH);
         const isSticky = TableVisualization.isSticky(stickyHeaderOffset);
 
         return (
-            <div className={this.getComponentClasses()}>
-                <div className={this.getContentClasses()} ref={this.setTableWrapRef}>
-                    <Table
-                        ref={this.setTableRef}
-                        touchScrollEnabled
-                        headerHeight={DEFAULT_HEADER_HEIGHT}
-                        footerHeight={footerHeight}
-                        rowHeight={DEFAULT_ROW_HEIGHT}
-                        rowsCount={this.props.rows.length}
-                        width={containerWidth}
-                        maxHeight={containerMaxHeight}
-                        height={height}
-                        onScrollStart={this.closeBubble}
-                    >
-                        {this.renderColumns(headers, columnWidth)}
-                    </Table>
+            <div>
+                <div className={this.getComponentClasses()}>
+                    <div className={this.getContentClasses()} ref={this.setTableWrapRef}>
+                        <Table
+                            ref={this.setTableRef}
+                            touchScrollEnabled
+                            headerHeight={DEFAULT_HEADER_HEIGHT}
+                            footerHeight={footerHeight}
+                            rowHeight={DEFAULT_ROW_HEIGHT}
+                            rowsCount={this.props.rows.length}
+                            width={containerWidth}
+                            maxHeight={containerMaxHeight}
+                            height={height}
+                            onScrollStart={this.closeBubble}
+                        >
+                            {this.renderColumns(headers, columnWidth)}
+                        </Table>
+                    </div>
+                    {isSticky ? this.renderStickyTableBackgroundFiller() : false}
                 </div>
-                {isSticky ? this.renderStickyTableBackgroundFiller() : false}
+                {this.renderTotalsRemove()}
             </div>
         );
     }
 }
+
+export default injectIntl(TableVisualization);
