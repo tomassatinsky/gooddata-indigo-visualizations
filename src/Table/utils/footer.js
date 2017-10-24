@@ -1,9 +1,9 @@
 import { getHeaderOffset } from './header';
 import { getHiddenRowsOffset } from './row';
-import { DEFAULT_FOOTER_ROW_HEIGHT } from '../TableVisualization';
+import { DEFAULT_FOOTER_ROW_HEIGHT, TOTALS_ADD_ROW_HEIGHT } from '../TableVisualization';
 
-export function getFooterHeight(aggregations) {
-    return aggregations.length * DEFAULT_FOOTER_ROW_HEIGHT;
+export function getFooterHeight(totals, totalsEditAllowed) {
+    return (totals.length * DEFAULT_FOOTER_ROW_HEIGHT) + (totalsEditAllowed ? TOTALS_ADD_ROW_HEIGHT : 0);
 }
 
 export function isFooterAtDefaultPosition(hasHiddenRows, tableBottom, windowHeight) {
@@ -12,8 +12,10 @@ export function isFooterAtDefaultPosition(hasHiddenRows, tableBottom, windowHeig
     return (tableBottom - hiddenRowsOffset) <= windowHeight;
 }
 
-export function isFooterAtEdgePosition(hasHiddenRows, aggregations, tableHeight, tableBottom, windowHeight) {
-    const footerHeight = getFooterHeight(aggregations);
+export function isFooterAtEdgePosition(hasHiddenRows, totals, windowHeight, totalsEditAllowed, tableDimensions) {
+    const { height: tableHeight, bottom: tableBottom } = tableDimensions;
+
+    const footerHeight = getFooterHeight(totals, totalsEditAllowed);
     const headerOffset = getHeaderOffset(hasHiddenRows);
 
     const footerHeightTranslate = tableHeight - footerHeight;
@@ -21,8 +23,10 @@ export function isFooterAtEdgePosition(hasHiddenRows, aggregations, tableHeight,
     return (tableBottom + headerOffset) >= (windowHeight + footerHeightTranslate);
 }
 
-export function getFooterPositions(hasHiddenRows, aggregations, tableHeight, tableBottom, windowHeight) {
-    const footerHeight = getFooterHeight(aggregations);
+export function getFooterPositions(hasHiddenRows, totals, windowHeight, totalsEditAllowed, tableDimensions) {
+    const { height: tableHeight, bottom: tableBottom } = tableDimensions;
+
+    const footerHeight = getFooterHeight(totals, totalsEditAllowed);
     const hiddenRowsOffset = getHiddenRowsOffset(hasHiddenRows);
     const headerOffset = getHeaderOffset(hasHiddenRows);
 

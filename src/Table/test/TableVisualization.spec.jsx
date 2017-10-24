@@ -6,7 +6,14 @@ import TableVisualization, { DEFAULT_FOOTER_ROW_HEIGHT } from '../TableVisualiza
 import { withIntl } from '../../test/utils';
 import { ASC, DESC } from '../constants/sort';
 import { EXECUTION_REQUEST_1A_2M, TABLE_HEADERS_1A_2M, TABLE_ROWS_1A_2M } from '../fixtures/1attribute2measures';
-import { TABLE_HEADERS_2M, TABLE_ROWS_2M } from '../fixtures/2measures';
+import { EXECUTION_REQUEST_2M, TABLE_HEADERS_2M, TABLE_ROWS_2M } from '../fixtures/2measures';
+import RemoveRows from '../Totals/RemoveRows';
+import { EXECUTION_REQUEST_2A_3M, TABLE_HEADERS_2A_3M, TABLE_ROWS_2A_3M } from '../fixtures/2attributes3measures';
+import { TotalCells } from '../Totals/TotalCells';
+
+function getInstanceFromWrapper(wrapper, component) {
+    return wrapper.find(component).childAt(0).instance();
+}
 
 const WrappedTable = withIntl(TableVisualization);
 
@@ -152,70 +159,162 @@ describe('Table', () => {
         });
     });
 
-    describe('table footer', () => {
-        const AGGREGATIONS = [
+    describe('table footer and totals', () => {
+        const TOTALS = [
             {
-                name: 'Sum',
-                values: [null, null, 125]
+                type: 'sum',
+                values: [null, null, 125],
+                outputMeasureIndexes: []
             }, {
-                name: 'Avg',
-                values: [null, 45.98, 12.32]
+                type: 'avg',
+                values: [null, 45.98, 12.32],
+                outputMeasureIndexes: []
             }, {
-                name: 'Rollup',
-                values: [null, 12.99, 1.008]
+                type: 'nat',
+                values: [null, 12.99, 1.008],
+                outputMeasureIndexes: []
             }
         ];
+        const DATA_2A_3M = {
+            rows: TABLE_ROWS_2A_3M,
+            headers: TABLE_HEADERS_2A_3M,
+            executionRequest: EXECUTION_REQUEST_2A_3M
+        };
 
-        it('should not render any footer cells when no aggregations are provided', () => {
-            const wrapper = renderTable();
+        describe('totals edit not allowed', () => {
+            it('should render total cells when totals are provided', () => {
+                const wrapper = renderTable({
+                    totalsWithData: TOTALS,
+                    ...DATA_2A_3M
+                });
 
-            expect(wrapper.find('.indigo-table-footer-cell').length).toEqual(0);
-        });
-
-        it('should not render any footer cells when aggregations are provided but data contains only measures', () => {
-            const wrapper = renderTable({
-                aggregations: AGGREGATIONS,
-                headers: TABLE_HEADERS_2M,
-                rows: TABLE_ROWS_2M
+                expect(wrapper.find(TotalCells).length).toEqual(5);
             });
 
-            expect(wrapper.find('.indigo-table-footer-cell').length).toEqual(0);
+            it('should not render any footer cells when no totals are provided', () => {
+                const wrapper = renderTable(DATA_2A_3M);
+
+                expect(wrapper.find('.indigo-table-footer-cell').length).toEqual(0);
+            });
+
+            it('should not render any total cell when totals are provided but data contains only measures', () => {
+                const wrapper = renderTable({
+                    totalsWithData: TOTALS,
+                    headers: TABLE_HEADERS_2M,
+                    rows: TABLE_ROWS_2M,
+                    executionRequest: EXECUTION_REQUEST_2M
+                });
+
+                expect(wrapper.find(TotalCells).length).toEqual(0);
+            });
+
+            it('should not render total cell when totals are provided but there is only row in data', () => {
+                const wrapper = renderTable({
+                    totalsWithData: TOTALS,
+                    rows: TABLE_ROWS_1A_2M,
+                    headers: TABLE_HEADERS_1A_2M,
+                    executionRequest: EXECUTION_REQUEST_1A_2M
+                });
+
+                expect(wrapper.find(TotalCells).length).toEqual(0);
+            });
+
+            it('should reset footer when component is updated with no totals', () => {
+                const wrapper = renderTable({
+                    totalsWithData: TOTALS,
+                    ...DATA_2A_3M
+                });
+
+                const footer = getInstanceFromWrapper(wrapper, TableVisualization).footer;
+
+                expect(footer.classList.contains('table-footer')).toBeTruthy();
+
+                wrapper.setProps({ totalsWithData: [] });
+
+                expect(footer.classList.contains('table-footer')).toBeFalsy();
+            });
+
+            it('should update footer height when component is updated with different totals', () => {
+                const wrapper = renderTable({
+                    totalsWithData: TOTALS,
+                    ...DATA_2A_3M
+                });
+                const footer = getInstanceFromWrapper(wrapper, TableVisualization).footer;
+
+                const heightBefore = TOTALS.length * DEFAULT_FOOTER_ROW_HEIGHT;
+
+                expect(footer.style.height).toEqual(`${heightBefore}px`);
+
+                const totalsAfter = [...TOTALS, {
+                    type: 'Other',
+                    outputMeasureIndexes: [],
+                    values: [1, 2, 3]
+                }];
+                const heightAfter = totalsAfter.length * DEFAULT_FOOTER_ROW_HEIGHT;
+
+                wrapper.setProps({ totalsWithData: totalsAfter });
+
+                expect(footer.style.height).toEqual(`${heightAfter}px`);
+            });
         });
 
-        it('should render footer cells when aggregations are provided', () => {
-            const wrapper = renderTable({ aggregations: AGGREGATIONS });
+        describe('totals edit allowed', () => {
+            it('should set editable class name to table', () => {
+                const wrapper = renderTable({
+                    totalsEditAllowed: true,
+                    ...DATA_2A_3M
+                });
 
-            expect(wrapper.find('.indigo-table-footer-cell').length).toEqual(9);
-        });
+                expect(wrapper.find('.indigo-table-component.has-footer-editable').length).toEqual(1);
+            });
 
-        it('should reset footer when component is updated with no aggregations', () => {
-            const wrapper = renderTable({ aggregations: AGGREGATIONS });
-            const footer = wrapper.find(TableVisualization).instance().footer;
+            it('should render remove buttons block when totals are provided', () => {
+                const wrapper = renderTable({
+                    totalsWithData: TOTALS,
+                    totalsEditAllowed: true,
+                    ...DATA_2A_3M
+                });
 
-            expect(footer.classList.contains('table-footer')).toBeTruthy();
+                expect(wrapper.find(RemoveRows).length).toEqual(1);
+            });
 
-            wrapper.setProps({ aggregations: [] });
+            it('should bind mouse events on table body cells', () => {
+                const wrapper = renderTable({
+                    totalsWithData: TOTALS,
+                    totalsEditAllowed: true,
+                    ...DATA_2A_3M
+                });
+                const component = wrapper.find(TableVisualization).childAt(0).instance();
+                const cell = wrapper.find('.fixedDataTableCellLayout_wrap1.col-2').at(0);
 
-            expect(footer.classList.contains('table-footer')).toBeFalsy();
-        });
+                component.toggleFooterColumnHighlight = jest.fn();
 
-        it('should update footer height when component is updated with different aggregations', () => {
-            const wrapper = renderTable({ aggregations: AGGREGATIONS });
-            const footer = wrapper.find(TableVisualization).instance().footer;
+                cell.simulate('mouseEnter');
 
-            const heightBefore = AGGREGATIONS.length * DEFAULT_FOOTER_ROW_HEIGHT;
+                expect(component.toggleFooterColumnHighlight).toBeCalledWith(2, true);
 
-            expect(footer.style.height).toEqual(`${heightBefore}px`);
+                cell.simulate('mouseLeave');
 
-            const aggregationsAfter = [...AGGREGATIONS, {
-                name: 'Other',
-                values: [1, 2, 3]
-            }];
-            const heightAfter = aggregationsAfter.length * DEFAULT_FOOTER_ROW_HEIGHT;
+                expect(component.toggleFooterColumnHighlight).toBeCalledWith(2, false);
+            });
 
-            wrapper.setProps({ aggregations: aggregationsAfter });
+            it('should enable total column when new row added', () => {
+                const wrapper = renderTable({
+                    totalsEditAllowed: true,
+                    ...DATA_2A_3M
+                });
+                const component = wrapper.find(TableVisualization).childAt(0).instance();
 
-            expect(footer.style.height).toEqual(`${heightAfter}px`);
+                component.onTotalsEdit = jest.fn();
+
+                component.addTotalsRow(2, 'sum');
+
+                expect(component.onTotalsEdit).toBeCalledWith([{
+                    type: 'sum',
+                    alias: 'Sum',
+                    outputMeasureIndexes: [0]
+                }]);
+            });
         });
     });
 });

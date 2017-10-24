@@ -10,18 +10,22 @@ export const immutableSet = (dataSet, path, newValue) => setWith({ ...dataSet },
 
 export const repeatItemsNTimes = (array, n) => new Array(n).fill(null).reduce(result => [...result, ...array], []);
 
-export function subscribeEvents(func, events) {
-    return events.map((event) => {
-        if (event.debounce > 0) {
-            return Observable
-                .fromEvent(window, event.name)
-                .debounceTime(event.debounce)
-                .subscribe(func);
-        }
-
+export function subscribeEvent(event, debounce, func, target = window) {
+    if (debounce > 0) {
         return Observable
-            .fromEvent(window, event.name)
+            .fromEvent(target, event)
+            .debounceTime(debounce)
             .subscribe(func);
+    }
+
+    return Observable
+        .fromEvent(target, event)
+        .subscribe(func);
+}
+
+export function subscribeEvents(func, events, target = window) {
+    return events.map((event) => {
+        return subscribeEvent(event.name, event.debounce, func, target);
     });
 }
 

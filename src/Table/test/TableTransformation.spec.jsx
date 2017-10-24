@@ -1,12 +1,15 @@
 import React from 'react';
 import { mount } from 'enzyme';
 
+import { withIntl } from '../../test/utils';
 import TableTransformation from '../TableTransformation';
 import {
     EXECUTION_REQUEST_2A_3M,
     EXECUTION_RESPONSE_2A_3M,
     EXECUTION_RESULT_2A_3M
 } from '../fixtures/2attributes3measures';
+
+const WrappedTable = withIntl(TableTransformation);
 
 describe('TableTransformation', () => {
     function createComponent(customProps = {}) {
@@ -16,11 +19,12 @@ describe('TableTransformation', () => {
             executionResult: EXECUTION_RESULT_2A_3M
         };
         const props = { ...defaultProps, ...customProps };
-        return <TableTransformation {...props} />;
+        return <WrappedTable {...props} />;
     }
 
     it('should use default renderer', () => {
-        const component = mount(createComponent());
+        const wrapper = mount(createComponent());
+        const component = wrapper.find(TableTransformation);
         expect(component.prop('tableRenderer')).toBeDefined();
     });
 
