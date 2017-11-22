@@ -6,6 +6,7 @@ import Table from './Table';
 import DrillableItem from '../proptypes/DrillableItem';
 import { getHeaders, getRows, validateTableProportions } from './utils/dataTransformation';
 import { getSortInfo, getSortItem } from './utils/sort';
+import { getTotalsFromConfig } from './utils/totals';
 import {
     ExecutionRequestPropTypes,
     ExecutionResponsePropTypes,
@@ -19,7 +20,6 @@ function renderDefaultTable(props) {
 export default class TableTransformation extends Component {
     static propTypes = {
         afterRender: PropTypes.func,
-        totals: PropTypes.array,
         totalsEditAllowed: PropTypes.bool,
         onTotalsEdit: PropTypes.func,
         config: PropTypes.object,
@@ -36,7 +36,6 @@ export default class TableTransformation extends Component {
 
     static defaultProps = {
         afterRender: noop,
-        totals: [],
         totalsEditAllowed: false,
         onTotalsEdit: noop,
         config: {},
@@ -59,7 +58,6 @@ export default class TableTransformation extends Component {
             onFiredDrillEvent,
             onSortChange,
             width,
-            totals,
             totalsEditAllowed,
             onTotalsEdit
         } = this.props;
@@ -71,6 +69,7 @@ export default class TableTransformation extends Component {
 
         const sortItem = getSortItem(executionRequest);
         const { sortBy, sortDir } = getSortInfo(sortItem, headers);
+        const totals = getTotalsFromConfig(config);
 
         const tableProps = {
             ...pick(config, ['rowsPerPage', 'onMore', 'onLess', 'sortInTooltip', 'stickyHeaderOffset']),

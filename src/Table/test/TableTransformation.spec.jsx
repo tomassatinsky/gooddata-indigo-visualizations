@@ -1,5 +1,6 @@
 import React from 'react';
 import { mount } from 'enzyme';
+import { cloneDeep } from 'lodash';
 
 import { withIntl } from '../../test/utils';
 import TableTransformation from '../TableTransformation';
@@ -8,6 +9,7 @@ import {
     EXECUTION_RESPONSE_2A_3M,
     EXECUTION_RESULT_2A_3M
 } from '../fixtures/2attributes3measures';
+import { config } from '../../test/fixtures';
 
 const WrappedTable = withIntl(TableTransformation);
 
@@ -44,5 +46,25 @@ describe('TableTransformation', () => {
         const tableRenderer = jest.fn().mockImplementation(() => <div />);
         mount(createComponent({ tableRenderer, width: 700 }));
         expect(tableRenderer.mock.calls[0][0].containerWidth).toEqual(700);
+    });
+
+    it('should pass totals obtained from config property', () => {
+        const tableRenderer = jest.fn().mockImplementation(() => <div />);
+
+        const configWithTotals = cloneDeep(config);
+        configWithTotals.buckets.totals = [{
+            total: {
+                type: 'sum',
+                alias: 'Suma',
+                outputMeasureIndexes: [1]
+            }
+        }];
+
+        mount(createComponent({ tableRenderer, config: configWithTotals }));
+        expect(tableRenderer.mock.calls[0][0].totals).toEqual([{
+            type: 'sum',
+            alias: 'Suma',
+            outputMeasureIndexes: [1]
+        }]);
     });
 });
