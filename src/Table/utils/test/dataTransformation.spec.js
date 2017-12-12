@@ -162,6 +162,16 @@ describe('Table utils - Data transformation', () => {
         });
     });
 
+    describe('Get table totals with data', () => {
+        it('should put together totals definition with result data', () => {
+
+        });
+
+        it('should always return totals in the same order [sum, max, min, avg, med, nat]', () => {
+
+        });
+    });
+
     describe('ExecutionResult headerItems', () => {
         it('should filter only arrays which contains only attribute header items', () => {
             const measureGroupHeaderItems = [
