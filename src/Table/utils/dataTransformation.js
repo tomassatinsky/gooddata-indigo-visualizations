@@ -1,6 +1,7 @@
 import invariant from 'invariant';
 import { get, has, isObject, omit, zip } from 'lodash';
 import { getAttributeElementIdFromAttributeElementUri } from '../../utils/common';
+import { getTotalsTypesList } from '../Totals/utils';
 
 function getAttributeHeaders(attributeDimension) {
     return attributeDimension.headers
@@ -67,6 +68,29 @@ export function getRows(executionResult) {
     return measureValues.map((measureValue, index) => {
         return [...attributeRows[index], ...measureValue];
     });
+}
+
+export function getTotalsWithData(totalsDefinition, executionResult) {
+    // TODO: join based on definition with data filled
+
+    if (!totalsDefinition.length) {
+        return [];
+    }
+
+    const orderedTotalstypes = getTotalsTypesList();
+
+    return orderedTotalstypes.reduce((totals, type, index) => {
+        const totalDefinition = totalsDefinition.find(total => total.type === type);
+
+        if (totalDefinition) {
+            totals.push({
+                ...totalDefinition,
+                values: [1, 2, 4, 8, 16, 32]
+            });
+        }
+
+        return totals;
+    }, []);
 }
 
 export function validateTableProportions(headers, rows) {

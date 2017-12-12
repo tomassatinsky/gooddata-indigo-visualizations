@@ -4,7 +4,7 @@ import { noop, pick } from 'lodash';
 
 import Table from './Table';
 import DrillableItem from '../proptypes/DrillableItem';
-import { getHeaders, getRows, validateTableProportions } from './utils/dataTransformation';
+import { getHeaders, getRows, validateTableProportions, getTotalsWithData } from './utils/dataTransformation';
 import { getSortInfo, getSortItem } from './utils/sort';
 import {
     ExecutionRequestPropTypes,
@@ -67,7 +67,7 @@ export default class TableTransformation extends Component {
 
         const headers = getHeaders(executionResponse);
         const rows = getRows(executionResult);
-        const totalsWithData = addMockDataToTotals(totals);
+        const totalsWithData = getTotalsWithData(totals, executionResult);
 
         validateTableProportions(headers, rows);
 
