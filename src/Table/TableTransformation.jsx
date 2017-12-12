@@ -20,7 +20,14 @@ function renderDefaultTable(props) {
 export default class TableTransformation extends Component {
     static propTypes = {
         afterRender: PropTypes.func,
-        totals: PropTypes.array,
+        totals: PropTypes.arrayOf(
+            PropTypes.shape({
+                type: PropTypes.oneOf('sum', 'max', 'min', 'avg', 'med', 'nat').isRequired,
+                title: PropTypes.string.isRequired,
+                alias: PropTypes.string.isRequired,
+                values: PropTypes.arrayOf(PropTypes.number)
+            })
+        ),
         totalsEditAllowed: PropTypes.bool,
         onTotalsEdit: PropTypes.func,
         config: PropTypes.object,
