@@ -17,17 +17,16 @@ function renderDefaultTable(props) {
     return <Table {...props} />;
 }
 
+export const TotalItem = {
+    type: PropTypes.oneOf('sum', 'max', 'min', 'avg', 'med', 'nat').isRequired,
+    outputMeasureIndexes: PropTypes.arrayOf(PropTypes.number).isRequired,
+    alias: PropTypes.string
+};
+
 export default class TableTransformation extends Component {
     static propTypes = {
         afterRender: PropTypes.func,
-        totals: PropTypes.arrayOf(
-            PropTypes.shape({
-                type: PropTypes.oneOf('sum', 'max', 'min', 'avg', 'med', 'nat').isRequired,
-                title: PropTypes.string.isRequired,
-                alias: PropTypes.string.isRequired,
-                values: PropTypes.arrayOf(PropTypes.number)
-            })
-        ),
+        totals: PropTypes.arrayOf(PropTypes.shape(TotalItem)),
         totalsEditAllowed: PropTypes.bool,
         onTotalsEdit: PropTypes.func,
         config: PropTypes.object,

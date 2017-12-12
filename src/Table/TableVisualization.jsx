@@ -35,6 +35,7 @@ import {
     removeMeasureIndex, getFirstMeasureIndex, getTotalsDefinition
 } from './Totals/utils';
 import TotalCell from './Totals/TotalCells';
+import {TotalItem} from "./TableTransformation";
 
 const FULLSCREEN_TOOLTIP_VIEWPORT_THRESHOLD = 480;
 const MIN_COLUMN_WIDTH = 100;
@@ -68,10 +69,8 @@ const scrollEvents = [
     }
 ];
 
-export const TotalItemWithData = {
-    alias: PropTypes.string,
-    type: PropTypes.string.isRequired,
-    outputMeasureIndexes: PropTypes.arrayOf(PropTypes.number).isRequired,
+export const TotalWithDataItem = {
+    ...TotalItem,
     values: PropTypes.array.isRequired
 };
 
@@ -94,7 +93,7 @@ export class TableVisualization extends Component {
         stickyHeaderOffset: PropTypes.number,
         totalsEditAllowed: PropTypes.bool,
         onTotalsEdit: PropTypes.func,
-        totalsWithData: PropTypes.arrayOf(PropTypes.shape(TotalItemWithData)),
+        totalsWithData: PropTypes.arrayOf(PropTypes.shape(TotalWithDataItem)),
         intl: intlShape.isRequired
     };
 
