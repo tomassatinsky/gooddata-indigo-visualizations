@@ -70,22 +70,33 @@ export function getRows(executionResult) {
     });
 }
 
-export function getTotalsWithData(totalsDefinition, executionResult) {
-    // TODO: join based on definition with data filled
+function getResultTotalsValues(executionResult) {
+    const totalsData = executionResult.totals;
+    if (totalsData && totalsData[0]) {
+        return totalsData[0];
+    }
+    return null;
+}
 
-    if (!totalsDefinition.length) {
+export function getTotalsWithData(totalsDefinition, executionResult) {
+    const totalsResultValues = getResultTotalsValues(executionResult);
+    if (!totalsDefinition.length || !totalsResultValues) {
         return [];
     }
 
-    const orderedTotalstypes = getTotalsTypesList();
+    const orderedTotalsTypes = getTotalsTypesList();
 
-    return orderedTotalstypes.reduce((totals, type, index) => {
+    return orderedTotalsTypes.reduce((totals, type, index) => {
         const totalDefinition = totalsDefinition.find(total => total.type === type);
 
         if (totalDefinition) {
+            const totalValues = totalsResultValues.map((totalResultValues, totalDataIndex) => (
+                totalValues[totalDataIndex][index] || null)
+            );
+
             totals.push({
                 ...totalDefinition,
-                values: [1, 2, 4, 8, 16, 32]
+                values: totalValues
             });
         }
 

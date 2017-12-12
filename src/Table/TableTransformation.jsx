@@ -11,7 +11,6 @@ import {
     ExecutionResponsePropTypes,
     ExecutionResultPropTypes
 } from '../proptypes/execution';
-import { addMockDataToTotals } from './Totals/utils';
 
 function renderDefaultTable(props) {
     return <Table {...props} />;

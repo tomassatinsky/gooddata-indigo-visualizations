@@ -49,19 +49,6 @@ export function orderTotals(totalsUnordered) {
     return sortBy(totalsUnordered, total => types.indexOf(total.type));
 }
 
-export function addMockDataToTotals(totals) {
-    const mockData = [
-        [null, 1279876.1234894, 123.123, null, 256, 815, 99, 9876983, null, 9845],
-        [null, 45894267842.1239, 45.98, 12.32, null, 12, 113, 231, 45, 112.32],
-        [null, 12.99, 0.012, 189415616.28, 12.0001, 1.008, 2, 2.098765, 0.1, 10.0987]
-    ];
-
-    return totals.map((total, index) => ({
-        ...total,
-        values: mockData[index % 3]
-    }));
-}
-
 export function toggleCellClass(parentReference, tableColumnIndex, state, className) {
     const cells = parentReference.querySelectorAll(`.col-${tableColumnIndex}`);
 
