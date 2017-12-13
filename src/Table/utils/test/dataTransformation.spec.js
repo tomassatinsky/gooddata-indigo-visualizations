@@ -65,8 +65,8 @@ import {
 } from '../../fixtures/periodOverPeriod';
 
 import {
-    PARTIAL_EXECUTION_RESULT,
-    TOTALS_DEFINITION
+    PARTIAL_EXECUTION_RESULT, SORTED_EXECUTION_RESULT,
+    TOTALS_DEFINITION, UNSORTED_TOTALS_DEFINITION
 } from "../fixtures/totalsWithData";
 
 describe('Table utils - Data transformation', () => {
@@ -177,14 +177,12 @@ describe('Table utils - Data transformation', () => {
                     outputMeasureIndexes: [],
                     alias: 'Sum of Something',
                     values: [null, null]
-                },
-                {
+                }, {
                     type: 'avg',
                     outputMeasureIndexes: [1],
                     alias: 'Avg of Something',
                     values: [null, 444]
-                },
-                {
+                }, {
                     type: 'nat',
                     outputMeasureIndexes: [0, 1],
                     values: [555, 666]
@@ -193,7 +191,34 @@ describe('Table utils - Data transformation', () => {
         });
 
         it('should always return totals in the same order [sum, max, min, avg, med, nat]', () => {
-
+            const totalsWithData = getTotalsWithData(UNSORTED_TOTALS_DEFINITION, SORTED_EXECUTION_RESULT);
+            expect(totalsWithData).toEqual([
+                {
+                    type: 'sum',
+                    outputMeasureIndexes: [0],
+                    values: [111]
+                }, {
+                    type: 'max',
+                    outputMeasureIndexes: [0],
+                    values: [222]
+                }, {
+                    type: 'min',
+                    outputMeasureIndexes: [0],
+                    values: [333]
+                }, {
+                    type: 'avg',
+                    outputMeasureIndexes: [0],
+                    values: [444]
+                }, {
+                    type: 'med',
+                    outputMeasureIndexes: [0],
+                    values: [555]
+                }, {
+                    type: 'nat',
+                    outputMeasureIndexes: [0],
+                    values: [666]
+                }
+            ]);
         });
     });
 
