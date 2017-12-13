@@ -4,11 +4,11 @@ import { getFooterHeight } from '../utils/footer';
 export function getTotalsTypesList() {
     return [
         'sum',
-        'avg',
-        'min',
         'max',
-        'nat',
-        'med'
+        'min',
+        'avg',
+        'med',
+        'nat'
     ];
 }
 

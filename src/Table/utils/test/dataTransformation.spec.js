@@ -176,12 +176,12 @@ describe('Table utils - Data transformation', () => {
                     type: 'sum',
                     outputMeasureIndexes: [],
                     alias: 'Sum of Something',
-                    values: [null, null]
+                    values: [111, 222]
                 }, {
                     type: 'avg',
                     outputMeasureIndexes: [1],
                     alias: 'Avg of Something',
-                    values: [null, 444]
+                    values: [333, 444]
                 }, {
                     type: 'nat',
                     outputMeasureIndexes: [0, 1],
@@ -195,6 +195,7 @@ describe('Table utils - Data transformation', () => {
             expect(totalsWithData).toEqual([
                 {
                     type: 'sum',
+                    alias: 'Sum of Something',
                     outputMeasureIndexes: [0],
                     values: [111]
                 }, {
@@ -207,6 +208,7 @@ describe('Table utils - Data transformation', () => {
                     values: [333]
                 }, {
                     type: 'avg',
+                    alias: 'Avg of Something',
                     outputMeasureIndexes: [0],
                     values: [444]
                 }, {

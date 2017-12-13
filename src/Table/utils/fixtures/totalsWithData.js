@@ -14,16 +14,16 @@ export const TOTALS_DEFINITION = [{
 export const UNSORTED_TOTALS_DEFINITION = [{
     type: 'max',
     outputMeasureIndexes: [0],
-    alias: 'Sum of Something'
 }, {
     type: 'avg',
-    outputMeasureIndexes: [0],
-    alias: 'Avg of Something'
+    alias: 'Avg of Something',
+    outputMeasureIndexes: [0]
 }, {
     type: 'nat',
     outputMeasureIndexes: [0]
 }, {
     type: 'sum',
+    alias: 'Sum of Something',
     outputMeasureIndexes: [0]
 }, {
     type: 'min',
