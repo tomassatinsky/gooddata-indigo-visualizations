@@ -4,6 +4,7 @@ import {
     getBackwardCompatibleRowForDrilling,
     getHeaders,
     getRows,
+    getTotalsWithData,
     validateTableProportions
 } from '../dataTransformation';
 
@@ -62,6 +63,11 @@ import {
     TABLE_HEADERS_POP,
     TABLE_ROWS_POP
 } from '../../fixtures/periodOverPeriod';
+
+import {
+    PARTIAL_EXECUTION_RESULT,
+    TOTALS_DEFINITION
+} from "../fixtures/totalsWithData";
 
 describe('Table utils - Data transformation', () => {
     describe('Get headers and rows', () => {
@@ -164,7 +170,26 @@ describe('Table utils - Data transformation', () => {
 
     describe('Get table totals with data', () => {
         it('should put together totals definition with result data', () => {
-
+            const totalsWithData = getTotalsWithData(TOTALS_DEFINITION, PARTIAL_EXECUTION_RESULT);
+            expect(totalsWithData).toEqual([
+                {
+                    type: 'sum',
+                    outputMeasureIndexes: [],
+                    alias: 'Sum of Something',
+                    values: [null, null]
+                },
+                {
+                    type: 'avg',
+                    outputMeasureIndexes: [1],
+                    alias: 'Avg of Something',
+                    values: [null, 444]
+                },
+                {
+                    type: 'nat',
+                    outputMeasureIndexes: [0, 1],
+                    values: [555, 666]
+                }
+            ]);
         });
 
         it('should always return totals in the same order [sum, max, min, avg, med, nat]', () => {

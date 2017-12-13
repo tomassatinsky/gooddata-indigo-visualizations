@@ -17,7 +17,7 @@ function renderDefaultTable(props) {
 }
 
 export const TotalItem = {
-    type: PropTypes.oneOf('sum', 'max', 'min', 'avg', 'med', 'nat').isRequired,
+    type: PropTypes.oneOf(['sum', 'max', 'min', 'avg', 'med', 'nat']).isRequired,
     outputMeasureIndexes: PropTypes.arrayOf(PropTypes.number).isRequired,
     alias: PropTypes.string
 };
