@@ -86,18 +86,16 @@ export function getTotalsWithData(totalsDefinition, executionResult) {
 
     const orderedTotalsTypes = getTotalsTypesList();
 
-    return orderedTotalsTypes.reduce((totals, type, index) => {
+    let index = 0;
+    return orderedTotalsTypes.reduce((totals, type) => {
         const totalDefinition = totalsDefinition.find(total => total.type === type);
 
         if (totalDefinition) {
-            const totalValues = totalsResultValues.map((totalResultValues, totalDataIndex) => (
-                totalValues[totalDataIndex][index] || null)
-            );
-
             totals.push({
                 ...totalDefinition,
-                values: totalValues
+                values: totalsResultValues[index]
             });
+            index += 1;
         }
 
         return totals;
