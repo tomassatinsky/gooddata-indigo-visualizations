@@ -222,6 +222,16 @@ describe('Table utils - Data transformation', () => {
                 }
             ]);
         });
+
+        it('should return empty array when totals definition is empty', () => {
+            const totalsWithData = getTotalsWithData([], SORTED_EXECUTION_RESULT);
+            expect(totalsWithData).toEqual([]);
+        });
+
+        it('should return empty array when totals are not presentin execution result', () => {
+            const totalsWithData = getTotalsWithData(UNSORTED_TOTALS_DEFINITION, {});
+            expect(totalsWithData).toEqual([]);
+        });
     });
 
     describe('ExecutionResult headerItems', () => {
