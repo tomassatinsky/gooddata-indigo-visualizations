@@ -351,17 +351,11 @@ export class TableVisualization extends Component {
     }
 
     hasFooter() {
-        if (this.isTotalsEditAllowed()) {
-            return true;
-        }
-
-        const { headers, totalsWithData, rows } = this.props;
-
-        const onlyMeasures = headers.every(header => header.type === 'measure');
-        const totalRowsCount = totalsWithData.length;
+        const { totalsWithData, rows, totalsEditAllowed } = this.props;
+        const totalsCount = totalsWithData.length;
         const rowsCount = rows.length;
 
-        return rowsCount > 1 && totalRowsCount > 0 && !onlyMeasures;
+        return rowsCount > 1 && (totalsCount > 0 || totalsEditAllowed);
     }
 
     checkTableDimensions() {
